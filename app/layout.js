@@ -1,6 +1,6 @@
 import { Inter } from 'next/font/google';
 import "./globals.css";
-import { SiWhatsapp } from "react-icons/si";
+
 
 const inter = Inter({ subsets: ['latin'] })
 
