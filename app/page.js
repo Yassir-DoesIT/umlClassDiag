@@ -189,11 +189,24 @@ const handleGenerateCode = (e) => {
         const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
        
 
-        `    private List<${clasNeeded.name}> ${classNeeded.name.toLowerCase()}s = new ArrayList<>();`} ).join("\n");
+        return `    private List<${clasNeeded.name}> ${classNeeded.name.toLowerCase()}s = new ArrayList<>();`} ).join("\n");
        console.log("agg and comp", aggregationsAndCompositions);
+
+       const associations = relations
+        .filter((rel) => {
+        
+           return (rel.relationPlaceholder === "association") && rel.attributes.source.id === cls.cell.attributes.id
+                            })
+       .map((rel) => {
+        const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+       
+
+        return `    private ${classNeeded.name} ${classNeeded.name.toLowerCase()};`} ).join("\n");
+        console.log("associations in map", associations);
         return `
     public class ${cls.name}${generalizations} {
     ${attributes}
+    ${associations}
     ${aggregationsAndCompositions}
     ${methods}
     }`;
@@ -230,10 +243,21 @@ const handleGenerateCode = (e) => {
                 const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
                 return `        self.${classNeeded.name.toLowerCase()}s = []`
                 }).join("\n");
+
+    const associations = relations
+                .filter((rel) => {
+                
+                   return (rel.relationPlaceholder === "association") && rel.attributes.source.id === cls.cell.attributes.id
+                                    })
+               .map((rel) => {
+                const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+                return `        self.${classNeeded.name.toLowerCase()} = None # Type : ${classNeeded.name}`
+                }).join("\n");
             return `
     class ${cls.name}${generalizations}:
         def __init__(self):
     ${attributes}
+    ${associations}
     ${aggregationsAndCompositions}
     ${methods}
     `;
@@ -261,7 +285,7 @@ const handleGenerateCode = (e) => {
                return ` extends ${classWanted.name}`
             }).join("");
 
-            const aggregationsAndCompositions = relations
+    const aggregationsAndCompositions = relations
             .filter((rel) => {
             
                return (rel.relationPlaceholder === "aggregation" || rel.relationPlaceholder === "composition") && rel.attributes.source.id === cls.cell.attributes.id
@@ -270,6 +294,15 @@ const handleGenerateCode = (e) => {
             const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
             return `    private $${classNeeded.name.toLowerCase()}s = array();`
         }).join("\n");
+    const associations = relations
+        .filter((rel) => {
+        
+           return (rel.relationPlaceholder === "association") && rel.attributes.source.id === cls.cell.attributes.id
+                            })
+       .map((rel) => {
+        const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+        return `    private $${classNeeded.name.toLowerCase()}; // Type : ${classNeeded.name}`
+    }).join("\n");
             return `
     class ${cls.name}${generalizations} {
     ${attributes}
@@ -314,7 +347,7 @@ const handleGenerateCode = (e) => {
                 onChange={(e) => setAttributes(e.target.value)}
                 rows="3"
                 className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="+age: int\n+gender: String"
+                placeholder="+type attribute"
             />
             <small className="text-gray-500">Séparer chaque attribut par un saut de ligne.</small>
         </div>
@@ -326,7 +359,7 @@ const handleGenerateCode = (e) => {
                 onChange={(e) => setMethods(e.target.value)}
                 rows="3"
                 className="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="+isMammal()\n+mate()"
+                placeholder="+method():returnType"
             />
             <small className="text-gray-500">Séparer chaque méthode par un saut de ligne.</small>
         </div>
