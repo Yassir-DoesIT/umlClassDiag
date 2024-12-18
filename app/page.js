@@ -91,28 +91,32 @@ const handleGenerateCode = (e) => {
                             { position:1000, attrs: { text: { text: cardinalitySource || '' } } },
                             {   attrs: { text: { text: cardinalityTarget || '' } } },
                         ], });
+                        link.relationPlaceholder = "composition";
                         break;
                     case 'aggregation':
                         link = new joint.shapes.uml.Aggregation({ source: { id: source.cell.id }, target: { id: target.cell.id }, labels: [
                             { position:100, attrs: { text: { text: cardinalitySource || '' } } },
                             {  attrs: { text: { text: cardinalityTarget || '' } } },
                         ], });
+                        link.relationPlaceholder = "aggregation";
                         break;
                     case 'inheritance':
                         link = new joint.shapes.uml.Generalization({ source: { id: source.cell.id }, target: { id: target.cell.id } });
+                        link.relationPlaceholder = "generalization";
                         break;
                     case 'association':
                     link = new joint.shapes.uml.Association({ source: { id: source.cell.id }, target: { id: target.cell.id }, labels: [
                         { position:100, attrs: { text: { text: cardinalitySource || '' } } },
                         {  attrs: { text: { text: cardinalityTarget || '' } } },
                     ], });
+                    link.relationPlaceholder = "association";
                     break;
                     default:
                         break;
                 }
 
                 graph.addCell(link);
-                setRelations([...relations, {cell: link}])
+                setRelations([...relations, link])
             }
         }
     };
@@ -163,14 +167,30 @@ const handleGenerateCode = (e) => {
         }
     `).join("\n");
 
+   
+
         const generalizations = relations
-        .filter((rel) => rel.cell.constructor.name.toLowerCase() === "generalization" && rel.cell.source === cls.name)
-        .map((rel) => ` extends ${rel.target}`).join("");
+        .filter((rel) =>{
+        
+            return (rel.relationPlaceholder === "generalization" && rel.attributes.source.id === cls.cell.attributes.id)
+        } )
+        .map((rel) =>{
+            const classWanted = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+            return ` extends ${classWanted.name}`;
+        }).join("");
+
 
         const aggregationsAndCompositions = relations
-        .filter((rel) => (rel.cell.constructor.name.toLowerCase() === "aggregation" || rel.cell.constructor.name.toLowerCase() === "composition") && rel.cell.source === cls.name)
-        .map((rel) => `    private List<${rel.target}> ${rel.target.toLowerCase()}s = new ArrayList<>();`).join("\n");
+        .filter((rel) => {
+        
+           return (rel.relationPlaceholder === "aggregation" || rel.relationPlaceholder === "composition") && rel.attributes.source.id === cls.cell.attributes.id
+                            })
+       .map((rel) => {
+        const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+       
 
+        `    private List<${clasNeeded.name}> ${classNeeded.name.toLowerCase()}s = new ArrayList<>();`} ).join("\n");
+       console.log("agg and comp", aggregationsAndCompositions);
         return `
     public class ${cls.name}${generalizations} {
     ${attributes}
@@ -191,13 +211,25 @@ const handleGenerateCode = (e) => {
             pass
     `).join("\n");
 
-    const generalizations = parsedRelationships
-            .filter((rel) => rel.type === "generalization" && rel.target === cls.name)
-            .map((rel) => `(${rel.source})`).join("");
+    const generalizations = relations
+        .filter((rel) =>{
+        
+            return (rel.relationPlaceholder === "generalization" && rel.attributes.source.id === cls.cell.attributes.id)
+        } )
+        .map((rel) =>{
+            const classWanted = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+                
+                return `(${classWanted.name})`}).join("");
 
-        const aggregationsAndCompositions = parsedRelationships
-            .filter((rel) => (rel.type === "aggregation" || rel.type === "composition") && rel.source === cls.name)
-            .map((rel) => `        self.${rel.target.toLowerCase()}s = []`).join("\n");
+    const aggregationsAndCompositions = relations
+                .filter((rel) => {
+                
+                   return (rel.relationPlaceholder === "aggregation" || rel.relationPlaceholder === "composition") && rel.attributes.source.id === cls.cell.attributes.id
+                                    })
+               .map((rel) => {
+                const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+                return `        self.${classNeeded.name.toLowerCase()}s = []`
+                }).join("\n");
             return `
     class ${cls.name}${generalizations}:
         def __init__(self):
@@ -218,13 +250,26 @@ const handleGenerateCode = (e) => {
             // TODO: Implement this method
         }
     `).join("\n");
-    const generalizations = parsedRelationships
-            .filter((rel) => rel.type === "generalization" && rel.target === cls.name)
-            .map((rel) => ` extends ${rel.source}`).join("");
+    const generalizations = relations
+        .filter((rel) =>{
+        
+            return (rel.relationPlaceholder === "generalization" && rel.attributes.source.id === cls.cell.attributes.id)
+        } )
+        .map((rel) =>{
+            const classWanted = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
 
-        const aggregationsAndCompositions = parsedRelationships
-            .filter((rel) => (rel.type === "aggregation" || rel.type === "composition") && rel.source === cls.name)
-            .map((rel) => `    private $${rel.target.toLowerCase()}s = array();`).join("\n");
+               return ` extends ${classWanted.name}`
+            }).join("");
+
+            const aggregationsAndCompositions = relations
+            .filter((rel) => {
+            
+               return (rel.relationPlaceholder === "aggregation" || rel.relationPlaceholder === "composition") && rel.attributes.source.id === cls.cell.attributes.id
+                                })
+           .map((rel) => {
+            const classNeeded = classes.find( classIterator => classIterator.cell.attributes.id === rel.attributes.target.id);
+            return `    private $${classNeeded.name.toLowerCase()}s = array();`
+        }).join("\n");
             return `
     class ${cls.name}${generalizations} {
     ${attributes}
